@@ -32,7 +32,7 @@ private suspend fun <T> Task<T>.await(): T = suspendCancellableCoroutine { c ->
 }
 
 object Transcriber {
-    private const val CHUNK_SEC = 180
+    private const val CHUNK_SEC = 60
 
     fun cancel() { runCatching { WhisperNative().nCancel(true) } }
 
@@ -61,7 +61,7 @@ object Transcriber {
                 onInfo = { durationMs = it },
             ) { chunk, offMs ->
                 val chunkMs = chunk.size * 1000L / AudioDecoder.RATE
-                onProgress("Transcrevendo…", progressOf(offMs, durationMs), "Trecho a partir de ${fmtClock(offMs)}")
+                onProgress("Transcrevendo…", progressOf(offMs, durationMs), "Processando o trecho de ${fmtClock(offMs)} (1 min de áudio por vez)…${preview(cues)}")
                 val rc = w.nRun(ptr, threads, lang, chunk)
                 if (!job.isActive) return@decode
                 if (rc != 0) throw IllegalStateException("O Whisper falhou (código $rc)")
@@ -80,7 +80,7 @@ object Transcriber {
                 val speed = processedMs.toFloat() / elapsed
                 onProgress(
                     "Transcrevendo…", progressOf(processedMs, durationMs),
-                    "${fmtClock(processedMs)} de ${fmtClock(durationMs)} · ${"%.1f".format(Locale.US, speed)}x o tempo real",
+                    "${fmtClock(processedMs)} de ${fmtClock(durationMs)} · ${"%.1f".format(Locale.US, speed)}x o tempo real${preview(cues)}",
                 )
             }
             job.ensureActive()
@@ -95,6 +95,8 @@ object Transcriber {
             w.nFree(ptr)
         }
     }
+
+    private fun preview(cues: List<Cue>) = cues.lastOrNull()?.let { "\nÚltima fala: «${it.text.take(80)}»" } ?: ""
 
     private fun progressOf(pos: Long, total: Long) = if (total > 0) (pos.toFloat() / total).coerceIn(0f, 1f) else 0f
 }

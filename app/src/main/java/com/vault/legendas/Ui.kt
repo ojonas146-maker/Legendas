@@ -21,7 +21,6 @@ import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -219,8 +218,11 @@ fun App() {
         // ---- progresso / resultado
         when (val r = run) {
             is Run.Working -> item {
+                var secs by remember { mutableLongStateOf(0L) }
+                LaunchedEffect(Unit) { while (true) { delay(1000); secs++ } }
                 Panel(r.stage) {
                     LinearProgressIndicator(progress = { r.progress }, modifier = Modifier.fillMaxWidth())
+                    Text("Tempo decorrido: ${fmtClock(secs * 1000)}", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
                     if (r.detail.isNotEmpty()) Text(r.detail, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text("Mantenha o app aberto. A tela fica ligada enquanto processa.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     OutlinedButton({ Transcriber.cancel(); job?.cancel() }) { Text("Cancelar") }

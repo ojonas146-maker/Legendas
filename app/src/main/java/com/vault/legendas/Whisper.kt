@@ -31,6 +31,8 @@ val MODELS = listOf(
     ModelInfo("tiny", "Tiny", "ggml-tiny-q5_1.bin", 31, "Muito rápido, erra bastante"),
     ModelInfo("base", "Base", "ggml-base-q5_1.bin", 57, "Rápido, bom para testar"),
     ModelInfo("small", "Small", "ggml-small-q5_1.bin", 181, "Recomendado: equilíbrio"),
+    ModelInfo("base8", "Base (q8)", "ggml-base-q8_0.bin", 82, "Teste: costuma ser mais rápido no ARM"),
+    ModelInfo("small8", "Small (q8)", "ggml-small-q8_0.bin", 264, "Teste: costuma ser mais rápido no ARM"),
     ModelInfo("medium", "Medium", "ggml-medium-q5_0.bin", 514, "Melhor qualidade, bem mais lento"),
 )
 
