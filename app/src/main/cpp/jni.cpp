@@ -52,6 +52,9 @@ JNIEXPORT jint JNICALL FN(nRun)(JNIEnv *env, jobject, jlong ptr, jint threads, j
     p.token_timestamps = true;
     p.max_len = 64;
     p.split_on_word = true;
+    // sem repetição por fallback de temperatura: tempo previsível (o padrão pode refazer um trecho até 5 vezes)
+    p.temperature_inc = 0.0f;
+    p.greedy.best_of = 1;
     p.abort_callback = abort_cb;
     p.abort_callback_user_data = nullptr;
 

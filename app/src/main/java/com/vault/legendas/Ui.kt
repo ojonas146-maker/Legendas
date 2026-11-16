@@ -65,6 +65,7 @@ fun App() {
     var videoName by remember { mutableStateOf("") }
     var modelId by rememberSaveable { mutableStateOf("small") }
     var lang by rememberSaveable { mutableStateOf("auto") }
+    var threadsSel by rememberSaveable { mutableIntStateOf(0) }   // 0 = automático
     var run by remember { mutableStateOf<Run>(Run.Idle) }
     var dlId by remember { mutableStateOf<String?>(null) }
     var dlProgress by remember { mutableFloatStateOf(0f) }
@@ -120,7 +121,7 @@ fun App() {
         job = scope.launch {
             run = Run.Working("Preparando…", 0f, "")
             try {
-                val base = Transcriber.run(ctx.applicationContext, uri, model, lang) { stage, p, d -> run = Run.Working(stage, p, d) }
+                val base = Transcriber.run(ctx.applicationContext, uri, model, lang, if (threadsSel == 0) fastCores() else threadsSel) { stage, p, d -> run = Run.Working(stage, p, d) }
                 var translated = false
                 var err: String? = null
                 if (base.cues.isNotEmpty()) {
@@ -194,6 +195,18 @@ fun App() {
                     "Se você sabe o idioma, escolher aqui costuma acertar mais do que \"Detectar\".",
                     fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+            }
+        }
+
+        // ---- desempenho
+        item {
+            Panel("Desempenho (para testes)") {
+                Text("Este aparelho: ${Runtime.getRuntime().availableProcessors()} núcleos, ${fastCores()} rápidos. Threads demais podem deixar mais lento.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(listOf(0, 2, 3, 4, 5, 6)) { t ->
+                        FilterChip(threadsSel == t, { threadsSel = t }, { Text(if (t == 0) "Auto (${fastCores()})" else "$t") }, enabled = !working)
+                    }
+                }
             }
         }
 

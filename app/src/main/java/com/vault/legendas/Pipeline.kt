@@ -14,6 +14,7 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
+import java.io.File
 import java.util.Locale
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -31,6 +32,16 @@ private suspend fun <T> Task<T>.await(): T = suspendCancellableCoroutine { c ->
     addOnFailureListener { c.resumeWithException(it) }
 }
 
+/** Núcleos "rápidos" do chip (os pequenos atrapalham o Whisper: todos esperam o mais lento). */
+fun fastCores(): Int {
+    val n = Runtime.getRuntime().availableProcessors()
+    return try {
+        val f = (0 until n).map { File("/sys/devices/system/cpu/cpu$it/cpufreq/cpuinfo_max_freq").readText().trim().toLong() }
+        val max = f.max()
+        f.count { it >= max * 0.7 }.coerceIn(2, 6)
+    } catch (_: Throwable) { (n / 2).coerceIn(2, 4) }
+}
+
 object Transcriber {
     private const val CHUNK_SEC = 60
 
@@ -38,16 +49,15 @@ object Transcriber {
 
     /** Extrai o áudio, transcreve com o Whisper e devolve as falas com horário. [onProgress] = (etapa, 0..1, detalhe). */
     suspend fun run(
-        ctx: Context, uri: Uri, model: ModelInfo, langPref: String,
+        ctx: Context, uri: Uri, model: ModelInfo, langPref: String, threads: Int,
         onProgress: (String, Float, String) -> Unit,
     ): TResult = withContext(Dispatchers.Default) {
         val w = WhisperNative()
         w.nCancel(false)
-        onProgress("Carregando o modelo ${model.label}…", 0f, "")
+        onProgress("Carregando o modelo ${model.label} ($threads threads)…", 0f, "")
         val ptr = w.nInit(ModelStore.file(ctx, model).path)
         if (ptr == 0L) throw IllegalStateException("Não foi possível carregar o modelo")
         try {
-            val threads = (Runtime.getRuntime().availableProcessors() - 2).coerceIn(2, 6)
             var lang = langPref
             var durationMs = 0L
             var processedMs = 0L
